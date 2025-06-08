@@ -1,97 +1,81 @@
 # PredictCost
 
-Para o dataset de dados sintéticos sobre o custo de manobrar entre diferentes poses, verifique se você incluiu:
+Este projeto explora como prever o custo de manobra entre duas poses de robô usando dados sintéticos. O repositório contém um pipeline completo de treinamento em Python, notebooks de exemplo e modelos pré-treinados.
 
-- [ ]  As estatísticas relevantes, como o número de exemplos.
-- [ ]  Os detalhes das divisões de treino / validação / teste.
-- [ ]  Uma explicação de quaisquer dados que foram excluídos e todos os passos de pré-processamento.
-- [ ]  Um link para uma versão para download do conjunto de dados ou ambiente de simulação.
-- [ ]  Para novos dados coletados, uma descrição completa do processo de coleta de dados, como instruções aos anotadores e métodos de controle de qualidade.
+## Dataset
 
-Verificação de data sete sintetico:
+Cada amostra representa uma pose inicial e final em um espaço 2D:
 
-- [ ]  Detalhamento da geração do dataset:
-    - [ ]  Método de construção dos atributos e do alvo:
-        
-        A pose inicial e final são escolhidas dentre um set de p
-        
+* **Features**: `xi`, `yi`, `thetai`, `betai`, `xf`, `yf`, `thetaf`, `betaf`
 
----
+  * `x` e `y` em metros
+  * `theta` e `beta` em radianos
+* **Target**: custo de manobra (valor real)
 
-## dataset
+O arquivo `df_unificado.csv` (não incluído no repositório) deve estar presente para executar o pipeline de treinamento.
 
-Variáveis: 
+## Estrutura do Repositório
 
-- xi, yi, thetai, betai, xf, yf, thetaf, betaf
-    - x e y em metros
-    - theta e beta em radianos
+* `pipeline_treinamento.py` – script principal para treinamento e avaliação de modelos.
+* `PredictCostRandomForestRegressor.ipynb` – notebook com experimentos para Random Forest.
+* `PredictCostDecisionTreeRegressor.ipynb` – notebook explorando Decision Trees.
+* `getting_started_tutorials/cuml_sklearn_colab_demo.ipynb` – exemplo usando GPUs.
+* `relatorio_gpu.json` – relatório com métricas de cross-validation e melhores hiperparâmetros.
+* `rf_final_gpu.pkl` e `xgb_final_gpu.pkl` – modelos pré-treinados (Random Forest e XGBoost).
+* `LICENSE` – licença MIT.
 
-Target:
+## Pipeline de Treinamento
 
-Custo real: float
+O script `pipeline_treinamento.py` executa os seguintes passos:
 
-> Detalhes importantes pro artigo sobre o custo
-> 
-> 
-> > Referência de como o custo para cada ação de manobra é normalmente encontrado de forma empírica ou utilizando otimização com múltiplos teste o que é um empírico repetido e comparado;
-> > 
+1. Carrega dados de `df_unificado.csv` e cria uma coluna `cost_bin` para amostragem estratificada.
+2. Amostra 10% do dataset usando *train-test split* estratificado.
+3. Prepara `X` (features) e `y` (target).
+4. Escala as features com `StandardScaler` para algoritmos que se beneficiam de normalização (SVR e KNN).
+5. Define um *KFold* embaralhado de 5 folds.
+6. Realiza *grid search* de hiperparâmetros para quatro modelos:
 
-- Porque usar um algoritmo de machine learning para isso?
-    - Pode ser usado para realizar teste de algoritmos de heurística de maneira muito mais rápida do que executar o planejador para múltiplas combinações para cara variação dos parâmetros da heurística
+   * Support Vector Regressor (SVR)
+   * K‑Nearest Neighbors (KNN)
+   * Decision Tree Regressor
+   * Random Forest Regressor
+7. Seleciona o melhor estimador de cada grid e avalia com `cross_validate`, obtendo métricas como R², MSE, MAE, MAPE, erro absoluto mediano, erro máximo e variância explicada.
 
-# Referências
+As métricas de um experimento usando GPU estão em `relatorio_gpu.json`, com Random Forest alcançando R² de \~0.90.
 
-- Algorithm 1 Function Hybrid A*
-    
-    [arxiv.org](https://arxiv.org/pdf/2111.06739)
-    
-- A truck-trailer mode
-    
-    [s40747-021-00330-z (1).pdf](attachment:28b024bb-74b9-495a-a5d2-3c9d1de135e7:s40747-021-00330-z_(1).pdf)
-    
+## Uso
 
----
+1. Coloque `df_unificado.csv` no diretório raiz do repositório.
+2. Instale as dependências:
 
-Modelos:
+   ```bash
+   pip install scikit-learn pandas numpy cuml xgboost
+   ```
+3. Execute:
 
-- **Algoritmo K-vizinhos mais próximos (kNN)**
-    - Pros: Não precisa treinar
-    - Contra: Para fazer a inferência dentro de milhares de dados vai demorar muito
-- **Naive Bayes**
-    - Pros:
-        - é um algoritmo que é tranquilo de treinar,
-        - tem poucos hiper parâmetros,
-        - é um modelo bom para ser o baseline
-    - Contras:
-        - O desempenho do algoritmo é prejudicado quando há muitos atributos
-        correlacionados
-        - Para dados numéricos, assume uma distribuição Gaussiana que pode não
-        caracterizar bem os atributos
-- **Árvores de decisão**
-    - Pros:
-        - Tranquilo de treinar,
-        - Rápido na predição
-    - Contras:
-        - overfitting com arvore muito profunda
-- **Ensemble**
-    - Usar talvez o Randon forest
-- **Support Vector Machines (SVM)**
+   ```bash
+   python pipeline_treinamento.py
+   ```
 
-cantinho da bagunça
+Os notebooks fornecem experimentação adicional e podem ser executados no Jupyter ou Google Colab.
 
-**Automotive:** Agent-based modeling can be employed to generate artificial data 
-related to traffic flow, helping improve road and transport systems. The
- use of synthetic data can help car manufacturers avoid the costly and 
-time-consuming process of obtaining real crash data for vehicle safety 
-testing. Makers of autonomous vehicles can use synthetic data to train 
-self-driving cars in navigating different scenarios.
+## Resultados
 
-Synthetic data and fabricated data are different. If you want to use synthetic data, you need to be transparent about how the data is generated and not tailor the synthetic data to support your hypothesis. Fabrication would be false data that is designed to support your hypothesis.
+Exemplo de avaliação em GPU (veja `relatorio_gpu.json`):
 
-Remember that any statistical analysis will be a reflection of the process used to generate the data. It might be that the trend in the synthetic data reflects real data, but you would have to make that case by examining how the synthetic data is generated.
+```
+RandomForest:
+  R²   0.9062
+  MSE  0.0003569
+  MAE  0.0115
+XGBoost:
+  R²   0.8746
+  MSE  0.0004772
+  MAE  0.0146
+```
 
-https://www.ibm.com/products/blog/synthetic-data-generation-building-trust-by-ensuring-privacy-and-quality
+Modelos pré-treinados `rf_final_gpu.pkl` e `xgb_final_gpu.pkl` estão disponíveis para inferência rápida.
 
-https://www.mdpi.com/2079-9292/13/17/3509
+## Licença
 
-https://arxiv.org/html/2404.07503v1
+Este projeto está licenciado sob os termos da Licença MIT. Consulte o arquivo `LICENSE` para mais detalhes.
