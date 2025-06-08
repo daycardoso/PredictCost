@@ -12,7 +12,7 @@ Cada amostra representa uma pose inicial e final em um espaço 2D:
   * `theta` e `beta` em radianos
 * **Target**: custo de manobra (valor real)
 
-O arquivo `df_unificado.csv` (não incluído no repositório) deve estar presente para executar o pipeline de treinamento.
+O arquivo `df_unificado.csv` deve estar presente para executar o pipeline de treinamento e pode ser encontrado em [df_unificado](https://www.kaggle.com/datasets/dayanacardoso/pose-inicial-pose-final-custo/data).
 
 ## Estrutura do Repositório
 
